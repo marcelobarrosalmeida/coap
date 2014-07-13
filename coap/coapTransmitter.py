@@ -211,6 +211,10 @@ class coapTransmitter(threading.Thread):
         # signal reception
         self.rxMsgEvent.set()
 
+    def close(self):
+        self.coapError = e.coapException("Request cancelled")
+        self.fsmGoOn = False
+        self.rxMsgEvent.set()
     #======================= private ==========================================
 
     #===== fsm
@@ -339,6 +343,8 @@ class coapTransmitter(threading.Thread):
         while True:
             waitTimeLeft = startTime+ackMaxWait-time.time()
             if self.rxMsgEvent.wait(timeout=waitTimeLeft):
+                if not self.fsmGoOn:
+                    return
                 # I got message
                 with self.dataLock:
                     (timestamp,srcIp,srcPort,message) = self.LastRxPacket

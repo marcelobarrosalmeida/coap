@@ -38,6 +38,7 @@ class coap(object):
         self.transmitters         = {}
         self.ackTimeout           = d.DFLT_ACK_TIMEOUT
         self.respTimeout          = d.DFLT_RESPONSE_TIMEOUT
+        self.coapTrans            = None
         if testing:
             self.socketUdp        = socketUdpDispatcher(
                 ipAddress         = self.ipAddress,
@@ -55,6 +56,8 @@ class coap(object):
 
     def close(self):
         self.socketUdp.close()
+        if self.coapTrans:
+            self.coapTrans.close()
 
     #===== client
 
@@ -121,7 +124,7 @@ class coap(object):
             self._cleanupTransmitter()
             messageId        = self._getMessageID(destIp,destPort)
             token            = self._getToken(destIp,destPort)
-            newTransmitter   = coapTransmitter.coapTransmitter(
+            self.coapTrans   = coapTransmitter.coapTransmitter(
                 sendFunc     = self.socketUdp.sendUdp,
                 srcIp        = self.ipAddress,
                 srcPort      = self.udpPort,
@@ -138,9 +141,9 @@ class coap(object):
             )
             key              = (destIp,destPort,token,messageId)
             assert key not in self.transmitters.keys()
-            self.transmitters[key] = newTransmitter
+            self.transmitters[key] = self.coapTrans
 
-        return newTransmitter.transmit()
+        return self.coapTrans.transmit()
 
     def _getMessageID(self,destIp,destPort):
         '''

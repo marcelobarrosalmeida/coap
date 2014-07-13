@@ -8,7 +8,7 @@ log.addHandler(NullHandler())
 
 import socket
 import time
-
+import select
 import socketUdp
 import threading
 
@@ -59,16 +59,16 @@ class socketUdpReal(socketUdp.socketUdp):
     def close(self):
         # declare that this thread has to stop
         self.goOn = False
-        
-        # send some dummy value into the socket to trigger a read
-        self.socket_handler.sendto( 'stop', ('::1',self.udpPort) )
-    
+        self.socket_handler.close()
     #======================== private =========================================
     
     def run(self):
         while self.goOn:
             try:
-                # blocking wait for something from UDP socket
+                # Blocking wait for something from UDP socket.
+                # A simple recvfrom() call does not returns when the socket is closed
+                # so we are using select() for detecting this condition.
+                i,o,e = select.select([self.socket_handler],[],[])
                 raw,conn = self.socket_handler.recvfrom(self.BUFSIZE)
             except socket.error as err:
                 log.critical("socket error: {0}".format(err))
